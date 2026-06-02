@@ -1,289 +1,282 @@
 # Auto Report Feishu Enterprise Console v10.0
 
-## Table of Contents
+## Overview
 
-1. Project Overview
-2. Problem Statement
-3. Solution Overview
-4. System Architecture
-5. Core Features
-6. Application Modules
-7. Enterprise Console UI
-8. Workbook Manager
-9. Export Engine
-10. Excel Rendering Engine
-11. Business Date Engine
-12. Scheduler Engine
-13. Queue Processing
-14. Runtime Lock System
-15. Watchdog Recovery
-16. Feishu Integration
-17. DWS Export Workflow
-18. JMS Export Workflow
-19. Dashboard Workflow
-20. Configuration Reference
-21. Threading Architecture
-22. Logging System
-23. Error Handling
-24. Installation
-25. Build EXE
-26. Deployment Guide
-27. Security Notes
-28. Performance Notes
-29. Troubleshooting
-30. Roadmap
-31. Changelog
-32. License
+Auto Report Feishu Enterprise Console v10.0 คือระบบ Automation สำหรับงาน Warehouse Operation และ Dashboard Monitoring ที่รวมระบบเดิมหลายตัวเข้าด้วยกันภายในโปรแกรมเดียว
 
----
+โปรเจกต์นี้เกิดจากการรวมความสามารถของ:
 
-# Project Overview
-
-Auto Report Feishu Enterprise Console เป็นระบบ Automation สำหรับ Warehouse Operation และ Dashboard Monitoring
-
-โปรเจกต์นี้รวมระบบเดิมหลายตัวเข้าด้วยกัน:
-
-- DWS Export Bot
-- JMS Export Bot
-- PDA Export Bot
-- Realtime DB Export Bot
-- Excel Dashboard Generator
+- Bot Export DWS 9-11
+- Bot Export JMS
+- Bot Export PDA
+- Bot Export Realtime DB
+- Dashboard Image Generator
 - Feishu Chat Sender
 - Scheduler System
 - Workbook Manager
 
-เป้าหมายคือให้ Operator สามารถควบคุมทุก Workflow ได้จากหน้าจอเดียว
+ให้กลายเป็น Enterprise Console ที่สามารถควบคุมทุก Workflow ได้จากหน้าจอเดียว
 
 ---
 
-# Problem Statement
+# Core Objectives
 
-ก่อนพัฒนาโปรเจกต์นี้
+ระบบถูกออกแบบมาเพื่อ
 
-- Export รายงานหลายระบบแยกกัน
-- Refresh Dashboard ด้วยมือ
-- Capture รูปด้วยมือ
-- ส่ง Feishu ด้วยมือ
-- ตรวจสอบสถานะหลายหน้าจอ
-
-ส่งผลให้
-
-- ใช้เวลามาก
-- เกิด Human Error
-- ส่งรายงานล่าช้า
-- ตรวจสอบย้อนหลังลำบาก
+- ลดงาน Manual Export Report
+- ลดเวลา Refresh Dashboard
+- ลดขั้นตอนการส่งรายงานเข้ากลุ่ม Feishu
+- รวมหลายระบบไว้ใน Application เดียว
+- เพิ่มความเสถียรของงาน Scheduled Report
+- รองรับการขยายจำนวน Dashboard ในอนาคต
 
 ---
 
-# Solution Overview
+# Main Features
 
-ระบบใหม่รวมทุกขั้นตอนเป็น Pipeline เดียว
+## Report Export
 
-```text
-Download Data
-      ↓
-Refresh Dashboard
-      ↓
-Generate PNG
-      ↓
-Upload Feishu
-      ↓
-Broadcast Report
-```
+- Export DWS Report
+- Export JMS Report
+- Export PDA Report
+- Export Realtime DB Report
+- Auto Download Source Data
+- Configurable Date Range
+- Configurable Business Hour
+
+## Dashboard Processing
+
+- Excel Auto Refresh
+- Business Date Update
+- Dynamic Column Delete
+- Dynamic Range Shift
+- Dashboard Rendering
+- PNG Export
+
+## Feishu Integration
+
+- Tenant Access Token
+- Chat ID Messaging
+- Image Upload API
+- Multi Image Broadcast
+- Parallel Upload Worker
+- Retry System
+
+## Scheduler
+
+- Run Now
+- Auto Scheduler
+- Cross-Day Schedule
+- Stop Auto
+- Stop Running Task
+
+## User Interface
+
+- Enterprise Console UI
+- Workbook Manager
+- Export Manager
+- Real-Time Log Viewer
+- Progress Tracking
+- Runtime Lock Protection
+- Watchdog Recovery
 
 ---
 
 # System Architecture
 
 ```text
-                     Scheduler
-                         │
-                         ▼
-                    Task Queue
-                         │
-        ┌────────────────┼────────────────┐
-        ▼                                 ▼
-   DWS/JMS Export                  Workbook Manager
-        │                                 │
-        ▼                                 ▼
- Download XLSX                    Refresh Dashboard
-        │                                 │
-        └──────────────┬──────────────────┘
+                   Scheduler
+                       │
                        ▼
-                Excel Renderer
-                       ▼
-                  PNG Output
+                 Task Queue
+                       │
+        ┌──────────────┼──────────────┐
+        ▼                             ▼
+   DWS/JMS Export              Workbook Manager
+        │                             │
+        ▼                             ▼
+ Download Excel                Refresh Workbook
+        │                             │
+        ▼                             ▼
+ Generate Source Data         Export Dashboard PNG
+        └──────────────┬──────────────┘
                        ▼
                  Feishu Sender
                        ▼
-                 Group Chat
+                Group Chat
 ```
 
 ---
 
-# Core Features
+# Project Structure
 
-## Data Export
-
-- DWS Export
-- JMS Export
-- PDA Export
-- Realtime DB Export
-- Scheduled Export
-- Manual Export
-
-## Dashboard
-
-- Excel Refresh
-- Business Date Update
-- Dynamic Delete Columns
-- Dynamic Range Shift
-- PNG Export
-
-## Feishu
-
-- Chat ID Messaging
-- Image Upload API
-- Multi Image Broadcast
-- Retry Logic
-
-## Stability
-
-- Runtime Lock
-- Queue Processing
-- Watchdog Recovery
-- Stop Process
-- Error Recovery
+```text
+project/
+│
+├── bot_main.py
+├── Createphoto.py
+├── Botmessage.py
+├── config.ini
+│
+├── output/
+│   ├── AUTOREALTIME.png
+│   ├── DWSREALTIME.png
+│   ├── AUTO_PDA.png
+│   ├── DWS_PDA.png
+│   └── REALTIME_DB.png
+│
+└── logs/
+```
 
 ---
 
-# Application Modules
+# Module Breakdown
 
 ## bot_main.py
 
-Main Controller
+Main Application Controller
 
 Responsibilities:
 
-- GUI
-- Scheduler
+- Enterprise GUI
+- Scheduler Engine
 - Queue Manager
 - Workbook Manager
-- Runtime Lock
-- Watchdog
-
-## Createphoto.py
-
-Dashboard Engine
-
-Responsibilities:
-
-- Excel COM
-- Workbook Refresh
-- Date Processing
-- Dashboard Export
-
-## Botmessage.py
-
-Feishu Layer
-
-Responsibilities:
-
-- Authentication
-- Upload Images
-- Send Messages
-- Retry Requests
+- Runtime Lock System
+- Watchdog Thread
+- Progress Tracking
+- Configuration Management
 
 ---
 
-# Enterprise Console UI
+## Createphoto.py
 
-## Home
+Dashboard Processing Engine
 
-Displays
+Responsibilities:
 
-- Current Time
-- Business Date
-- Scheduler State
-- Progress Bar
-- Pipeline Status
-- Live Log
+- Excel COM Automation
+- Workbook Refresh
+- Business Date Processing
+- Dynamic Delete Logic
+- Dynamic Range Shift
+- Dashboard Rendering
+- PNG Export
 
-## Workbook Manager
+---
 
-Displays
+## Botmessage.py
 
-- Workbook Cards
-- Export Items
-- Enable / Disable Controls
+Feishu Communication Layer
 
-## Export Manager
+Responsibilities:
 
-Displays
-
-- DWS Settings
-- JMS Settings
-- Download Configuration
-
-## Settings
-
-Displays
-
-- App ID
-- App Secret
-- Chat ID
-- Output Folder
+- Get Tenant Access Token
+- Upload Images
+- Send Chat Message
+- Retry Requests
+- Parallel Upload Worker
 
 ---
 
 # Workbook Manager
 
-Dynamic Workbook Architecture
+Version 10 ใช้ Dynamic Workbook Architecture
+
+รองรับ:
+
+- เพิ่ม Workbook หลายไฟล์
+- เพิ่ม Export ได้ไม่จำกัด
+- เปิด/ปิด Workbook แยกได้
+- เปิด/ปิด Export แยกได้
+- เปิด/ปิด Feishu Send แยกได้
+
+ตัวอย่าง
 
 ```text
-Workbook
-   ├── Export 1
-   ├── Export 2
-   ├── Export 3
-   └── Export N
+Workbook A
+├── Export 1
+├── Export 2
+└── Export 3
+
+Workbook B
+├── Export 4
+└── Export 5
 ```
 
-Capabilities
-
-- Add Workbook
-- Remove Workbook
-- Add Export
-- Enable Workbook
-- Disable Workbook
-- Enable Send
-- Disable Send
-
 ---
 
-# Export Engine
+# Export Item Configuration
 
-Each Export Item contains
+แต่ละ Export สามารถกำหนดได้
 
-| Field | Description |
-|---------|------------|
-| Use | Enable Export |
-| Send | Send To Feishu |
-| Sheet | Worksheet |
+| Setting | Description |
+|----------|-------------|
+| Use | เปิด/ปิด Export |
+| Send | ส่งเข้า Feishu |
+| Delete | ใช้ Dynamic Delete |
+| Sheet | ชื่อ Worksheet |
 | Range | Export Range |
-| File | Output File |
-| Delete | Dynamic Delete |
+| File | Output PNG |
 
 ---
 
-# Excel Rendering Engine
+# Business Date Engine
 
-Uses
+ระบบใช้ Business Date แทน Calendar Date
+
+ตัวอย่าง
+
+```text
+Start Hour = 15
+
+Current Time = 08:00
+
+Business Date = Yesterday
+```
+
+ช่วยให้ Dashboard กลางคืนและรายงานข้ามวันแสดงผลได้ถูกต้อง
+
+---
+
+# Dynamic Dashboard Logic
+
+Workflow
+
+```text
+Business Hour
+      ↓
+Delete Old Columns
+      ↓
+Shift Export Range
+      ↓
+Refresh Dashboard
+      ↓
+Render Image
+      ↓
+Export PNG
+```
+
+---
+
+# Excel Processing Engine
+
+ระบบใช้
 
 ```python
 win32.DispatchEx("Excel.Application")
 ```
 
-Operations
+สำหรับ
+
+- Open Workbook
+- Refresh Query
+- Calculate Workbook
+- Copy Picture
+- Export Chart
+- Generate PNG
+
+Functions ที่ใช้งานหลัก
 
 ```python
 RefreshAll()
@@ -292,94 +285,138 @@ CopyPicture()
 Chart.Export()
 ```
 
-Purpose
+---
 
-- Refresh Dashboard
-- Calculate Workbook
-- Generate PNG
+# Blank Image Protection
+
+มีระบบป้องกันภาพขาวจาก Excel
+
+ประกอบด้วย
+
+- Clipboard Pump
+- Export Validation
+- Retry Export
+- Render Verification
+
+ช่วยลดปัญหา PNG ว่างจาก Excel COM
 
 ---
 
-# Business Date Engine
-
-Example
+# Feishu Workflow
 
 ```text
-Start Hour = 15
-Current Time = 08:00
-Business Date = Previous Day
+Generate PNG
+      ↓
+Upload Image
+      ↓
+Receive image_key
+      ↓
+Send Chat Message
+      ↓
+Complete
 ```
 
-Benefits
-
-- Correct Night Shift Reporting
-- Cross-Day Dashboard Support
+รองรับส่งหลายภาพภายในรอบเดียว
 
 ---
 
-# Scheduler Engine
+# Parallel Upload System
 
-Supports
+ใช้
 
-- Run Now
+```python
+ThreadPoolExecutor(max_workers=3)
+```
+
+เพื่อ
+
+- Upload หลายไฟล์พร้อมกัน
+- ลดเวลารอ
+- เพิ่ม Throughput
+
+---
+
+# Retry System
+
+รองรับ Retry สำหรับ
+
+- Get Token
+- Upload Image
+- Send Message
+- Download Request
+- API Request
+
+พร้อม Exponential Backoff
+
+---
+
+# Scheduler System
+
+รองรับ
+
 - Auto Run
-- Hourly Schedule
+- Run Now
 - Cross-Day Schedule
+- Business Hour Window
 - Stop Scheduler
+- Stop Current Task
 
-Example
+ตัวอย่าง
 
 ```text
-Run Minute = 5
 Start Hour = 15
 End Hour = 12
+Run Minute = 5
 ```
+
+ระบบจะทำงานทุกชั่วโมงภายในช่วงเวลาที่กำหนด
 
 ---
 
-# Queue Processing
+# Queue System
 
-Uses
+ใช้
 
 ```python
 queue.Queue()
 ```
 
-Purpose
+สำหรับ
 
+- Sequential Processing
 - Prevent Duplicate Run
-- Sequential Execution
-- Background Processing
+- Background Task Execution
 
 ---
 
 # Runtime Lock System
 
-Locks UI During Runtime
+ระหว่างระบบกำลังทำงาน
 
-Protected Areas
+จะทำการ Lock
 
-- Workbook Config
-- Export Config
-- Scheduler Config
-- Feishu Config
+- Workbook Settings
+- Export Settings
+- Scheduler Settings
+- Feishu Settings
 
-Benefits
+ป้องกัน
 
-- Prevent Invalid State
-- Prevent Runtime Corruption
+- Config Corruption
+- Runtime Conflict
+- Invalid State
 
 ---
 
 # Watchdog Recovery
 
-Monitors
+Watchdog Thread ทำหน้าที่
 
-- Excel Hang
-- Deadlock
-- Frozen Process
+- ตรวจจับ Process ค้าง
+- ตรวจจับ Excel Hang
+- ตรวจจับ Deadlock
 
-Recovery
+เมื่อพบปัญหา
 
 ```text
 Stop Current Task
@@ -389,119 +426,83 @@ Unlock UI
 
 ---
 
-# Feishu Integration
+# Enterprise Console UI
 
-Workflow
+## Home
 
-```text
-Get Token
-      ↓
-Upload Image
-      ↓
-Receive Image Key
-      ↓
-Send Chat Message
-```
+แสดง
 
-Supports
+- Current Time
+- Business Date
+- Current Mode
+- Scheduler Status
+- Progress Bar
+- Live Log
+- Pipeline Status
 
+## Workbook Manager
+
+จัดการ
+
+- Workbook
+- Export Items
+- Output Files
+- Enable / Disable
+
+## Export Manager
+
+จัดการ
+
+- DWS
+- JMS
+- PDA
+- Realtime DB
+
+## Settings
+
+จัดการ
+
+- App ID
+- App Secret
 - Chat ID
-- Image Message
-- Multi Image Send
+- Output Folder
+- Scheduler Config
 
 ---
 
-# DWS Export Workflow
+# Pipeline Monitoring
+
+แสดงสถานะของ
 
 ```text
-Request Data
-      ↓
-Generate File
-      ↓
-Download XLSX
-      ↓
-Save Output
+DWS
+JMS AUTO
+JMS PDA
+Realtime DB
+Excel Image
+Feishu
 ```
 
----
-
-# JMS Export Workflow
+สถานะที่รองรับ
 
 ```text
-Create Job
-      ↓
-Wait Complete
-      ↓
-Download XLSX
-      ↓
-Save Output
-```
-
----
-
-# Dashboard Workflow
-
-```text
-Open Workbook
-      ↓
-Refresh Workbook
-      ↓
-Calculate Workbook
-      ↓
-Render Dashboard
-      ↓
-Export PNG
-```
-
----
-
-# Configuration Reference
-
-## FEISHU
-
-```ini
-APP_ID=
-APP_SECRET=
-CHAT_ID=
-```
-
-## TIME
-
-```ini
-run_minute=5
-start_hour=15
-end_hour=12
-```
-
-## PATH
-
-```ini
-output_dir=
-```
-
----
-
-# Threading Architecture
-
-```text
-Main UI Thread
-      │
-      ├── Scheduler Thread
-      ├── Queue Worker
-      ├── Watchdog Thread
-      └── Upload Workers
+READY
+RUNNING
+DONE
+ERROR
 ```
 
 ---
 
 # Logging System
 
-Example
+ตัวอย่าง
 
 ```text
 [OPEN] Workbook
 [REFRESH] Dashboard
-[EXPORT] Image
+[DELETE] AUTO REALTIME
+[EXPORT] AUTOREALTIME.png
 [TOKEN] OK
 [UPLOAD] Image
 [SEND] Feishu
@@ -510,21 +511,27 @@ Example
 
 ---
 
-# Error Handling
+# Configuration
 
-Supported
+ใช้ไฟล์
 
-- Excel Timeout
-- Workbook Missing
-- Upload Failure
-- Invalid Token
-- Invalid Chat ID
-- Scheduler Error
-- Runtime Cancellation
+```text
+config.ini
+```
+
+เก็บข้อมูล
+
+- Workbook Settings
+- Export Settings
+- Scheduler Settings
+- Feishu Settings
+- DWS/JMS Settings
 
 ---
 
 # Installation
+
+## Install Dependencies
 
 ```bash
 pip install customtkinter
@@ -535,7 +542,7 @@ pip install tkcalendar
 pip install pillow
 ```
 
-Run
+## Run
 
 ```bash
 python bot_main.py
@@ -559,103 +566,63 @@ pyinstaller --onefile --windowed --name Auto_Report_Feishu bot_main.py
 
 ---
 
-# Deployment Guide
+# Supported Workflows
 
-1. Install Python
-2. Install Dependencies
-3. Configure config.ini
-4. Test Manual Run
-5. Test Feishu Connection
-6. Configure Scheduler
-7. Build EXE
-8. Deploy To Production
+## DWS Export
 
----
+```text
+Download DWS
+      ↓
+Save Excel
+      ↓
+Generate Dashboard
+```
 
-# Security Notes
+## JMS Export
 
-- Do not commit APP_SECRET
-- Do not commit CHAT_ID if private
-- Restrict access to config.ini
-- Use dedicated Feishu application
+```text
+Create Export Job
+      ↓
+Wait Complete
+      ↓
+Download XLSX
+```
 
----
+## Dashboard Export
 
-# Performance Notes
+```text
+Refresh Workbook
+      ↓
+Render Dashboard
+      ↓
+Export PNG
+```
 
-Recommended
+## Feishu Delivery
 
-- Windows 10/11
-- Excel Desktop Installed
-- SSD Storage
-- 8GB RAM+
-
----
-
-# Troubleshooting
-
-## Blank PNG
-
-Check
-
-- Excel Installed
-- Workbook Path
-- Sheet Name
-- Export Range
-
-## Feishu Send Failed
-
-Check
-
-- APP_ID
-- APP_SECRET
-- CHAT_ID
-- Internet Connection
-
-## Scheduler Not Running
-
-Check
-
-- Time Window
-- Run Minute
-- Auto Mode Enabled
+```text
+Upload Image
+      ↓
+Send Chat Message
+```
 
 ---
 
-# Roadmap
-
-- PDF Export
-- Dashboard History
-- Web Dashboard
-- Telegram Integration
-- Slack Integration
-- Multi Group Broadcast
-- Database Storage
-- User Permissions
-
----
-
-# Changelog
-
-## v10.0
+# Version 10.0 Highlights
 
 - Enterprise Console UI
-- Workbook Manager
-- Dynamic Export System
-- Runtime Lock
+- Dynamic Workbook Manager
+- Multi Workbook Support
+- Multi Export Support
+- Runtime Lock Protection
 - Watchdog Recovery
-- Parallel Upload
 - Queue Processing
-
-## Previous Versions
-
-- v1-v3 DWS Export
-- v4-v5 JMS Integration
-- v6 Dashboard Export
-- v7 Feishu Sender
-- v8 Scheduler Upgrade
-- v9 Workbook Migration
-- v10 Enterprise Console
+- Business Date Engine
+- Cross-Day Scheduler
+- Parallel Upload
+- Improved Excel Rendering
+- Improved Feishu Integration
+- Unified DWS + JMS + Dashboard + Feishu Workflow
 
 ---
 
