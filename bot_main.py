@@ -1930,10 +1930,7 @@ class App(ctk.CTk):
 
         self.log("Loading Realtime DB", "REALTIME")
 
-        token = entry_value(
-            self.jms_token,
-            collapse_internal_spaces=True
-        )
+        token = entry_value(self.jms_token, collapse_internal_spaces=True)
 
         headers = {
             "Content-Type": "application/json;charset=UTF-8",
@@ -1943,8 +1940,6 @@ class App(ctk.CTk):
             "routename": "TrackRealTimeMonitoringDB",
             "lang": "TH",
             "langtype": "TH",
-            "timezone": "GMT+0700",
-            "Cache-Control": "max-age=2, must-revalidate",
         }
 
         session = requests.Session()
@@ -1952,10 +1947,6 @@ class App(ctk.CTk):
         # ==================================================
         # STEP 1 : CREATE EXPORT TASK
         # ==================================================
-
-        export_start_time = (
-            datetime.now() - timedelta(seconds=5)
-        ).replace(microsecond=0)
 
         export_url = (
             "https://jmsgw.jtexpress.co.th"
@@ -1972,6 +1963,8 @@ class App(ctk.CTk):
                 "Packing scan",
                 "Problematic parcel scan",
                 "Return Item Registration"
+                #"DP Departure scan",
+                #"DC Departure scan"
             ],
 
             "overTimeType": [
@@ -2000,25 +1993,7 @@ class App(ctk.CTk):
             headers=headers,
             timeout=(10, 60)
         )
-
         r.raise_for_status()
-
-        export_data = r.json()
-
-        if (
-            export_data.get("code") == 0
-            and "กำลังยุ่ง" in str(export_data.get("msg", ""))
-        ):
-            self.log(
-                "Export task already exists, waiting file generation...",
-                "REALTIME"
-            )
-
-        elif not export_data.get("succ", False):
-            raise Exception(
-                export_data.get("msg", "Export failed")
-            )
-
         # ==================================================
         # STEP 2 : WAIT EXPORT
         # ==================================================
@@ -2035,14 +2010,17 @@ class App(ctk.CTk):
             "/businessindicator/bigdataReport/report/file/list"
         )
 
+        today = datetime.now().strftime("%Y-%m-%d")
+
+        
         list_payload = {
             "current": 1,
             "size": 50
         }
-
+        
         download_url = None
 
-        for _ in range(60):
+        for _ in range(15):
 
             resp = session.post(
                 list_url,
@@ -2054,7 +2032,8 @@ class App(ctk.CTk):
             resp.raise_for_status()
 
             data = resp.json()
-
+        
+            
             rows = data.get("data", {}).get("list", [])
 
             if not isinstance(rows, list):
@@ -2062,9 +2041,7 @@ class App(ctk.CTk):
 
             rows = sorted(
                 rows,
-                key=lambda x: str(
-                    x.get("createTime", "")
-                ),
+                key=lambda x: str(x.get("createTime", "")),
                 reverse=True
             )
 
@@ -2073,59 +2050,25 @@ class App(ctk.CTk):
                 if not isinstance(row, dict):
                     continue
 
-                create_time = str(
-                    row.get("createTime", "")
-                )
-
-                try:
-                    row_time = datetime.strptime(
-                        create_time,
-                        "%Y-%m-%d %H:%M:%S"
-                    )
-                except Exception:
-                    continue
-
-                if row_time < export_start_time:
-                    continue
-
                 if (
-                    row.get("business")
-                    == "trail_monitor_detail_doris"
-                    and (
-                        str(row.get("status")) == "2"
-                        or row.get("statusText")
-                        == "เสร็จสิ้นแล้ว"
-                    )
+                    row.get("business") == "trail_monitor_detail_doris"
+                    and str(row.get("status")) == "2"
                 ):
 
                     download_url = row.get("downUrl")
 
                     if not download_url:
 
-                        download_result = row.get(
-                            "downloadResult"
-                        )
+                        download_result = row.get("downloadResult")
 
-                        if isinstance(
-                            download_result,
-                            str
-                        ):
+                        if isinstance(download_result, str):
                             try:
-                                download_result = json.loads(
-                                    download_result
-                                )
+                                download_result = json.loads(download_result)
                             except Exception:
                                 download_result = {}
 
-                        if isinstance(
-                            download_result,
-                            dict
-                        ):
-                            download_url = (
-                                download_result.get(
-                                    "data"
-                                )
-                            )
+                        if isinstance(download_result, dict):
+                            download_url = download_result.get("data")
 
                     if download_url:
                         break
@@ -2133,10 +2076,10 @@ class App(ctk.CTk):
             if download_url:
                 break
 
-            if not self.sleep_with_stop(2):
-                return
+            time.sleep(2)
 
         if not download_url:
+
             raise Exception(
                 "Cannot find completed realtime export file"
             )
@@ -2166,9 +2109,7 @@ class App(ctk.CTk):
 
         save_path = os.path.join(
             raw_dir,
-            entry_value(
-                self.name_realtime_db
-            ) or "RealtimeDB.xlsx"
+            entry_value(self.name_realtime_db) or "RealtimeDB.xlsx"
         )
 
         if len(file_resp.content) < 1000:
@@ -2538,9 +2479,6 @@ class App(ctk.CTk):
 
             if not self.scheduler_running:
                 self.set_ui_running(False)
-
-            # คืนสถานะ Pipeline กลับเป็น READY
-            self.after(1500, lambda: self.set_pipeline_state())
 
     def run_once(self):
         # ห้ามกดถ้ามี process กำลังรัน

@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import json
 import configparser
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Optional, List
@@ -53,11 +54,13 @@ def get_feishu() -> dict:
     def get_cfg(key: str) -> str:
         return config["FEISHU"].get(key, "").strip().replace('"', "")
 
+    # Chat ID mode only.
     return {
         "APP_ID": get_cfg("APP_ID"),
         "APP_SECRET": get_cfg("APP_SECRET"),
         "CHAT_ID": get_cfg("CHAT_ID"),
     }
+
 
 
 def get_token(app_id: str, app_secret: str) -> str:
@@ -90,15 +93,23 @@ def upload_image(token: str, path: str, log: LogFunc = None) -> str:
     return res["data"]["image_key"]
 
 
-"""def send_image(image_key: str, webhook: str, secret: str, log: LogFunc = None) -> None:
-    timestamp = str(int(time.time()))
-    sign = gen_sign(timestamp, secret)
-    data = {"timestamp": timestamp, "sign": sign, "msg_type": "image", "content": {"image_key": image_key}}
+def send_image_to_chat(token: str, chat_id: str, image_key: str, log: LogFunc = None) -> None:
+    """Send image by Feishu OpenAPI Chat ID mode."""
+    url = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json; charset=utf-8"}
+    payload = {
+        "receive_id": chat_id,
+        "msg_type": "image",
+        "content": json.dumps({"image_key": image_key}, ensure_ascii=False),
+    }
 
     def do_request():
-        return requests.post(webhook, json=data, timeout=10)
+        res = requests.post(url, headers=headers, json=payload, timeout=15).json()
+        if res.get("code") != 0:
+            raise Exception(f"Send image failed: {res}")
+        return res
 
-    request_with_retry(do_request, log=log, name="send_image")"""
+    request_with_retry(do_request, log=log, name="send_image_to_chat")
 
 
 def get_send_file_names() -> List[str]:
@@ -118,43 +129,20 @@ def get_send_file_names() -> List[str]:
                 files.append(val)
     return files
 
-def send_image_chat(token: str, chat_id: str, image_key: str):
-    url = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id"
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "receive_id": chat_id,
-        "msg_type": "image",
-        "content": f'{{"image_key":"{image_key}"}}'
-    }
-
-    res = requests.post(
-        url,
-        headers=headers,
-        json=payload,
-        timeout=15
-    ).json()
-
-    if res.get("code") != 0:
-        raise Exception(f"Send image failed: {res}")
-    
 def run_send(folder: str, log: LogFunc = None, is_running: RunFunc = None) -> None:
     def write(msg: str):
         log(msg) if log else print(msg)
 
     cfg = get_feishu()
-    chat_id = cfg["CHAT_ID"]
     app_id = cfg["APP_ID"]
     app_secret = cfg["APP_SECRET"]
+    chat_id = cfg["CHAT_ID"]
 
-    if not chat_id:
-        raise Exception("Missing CHAT_ID")
     if not app_id or not app_secret:
         raise Exception("Missing APP_ID / APP_SECRET")
+    if not chat_id:
+        raise Exception("Missing CHAT_ID")
 
     get_token.logger = write
     token = get_token(app_id, app_secret)
@@ -197,11 +185,7 @@ def run_send(folder: str, log: LogFunc = None, is_running: RunFunc = None) -> No
                 run_send.ui("send")
             except Exception:
                 pass
-        send_image_chat(
-            token,
-            chat_id,
-            key
-        )
+        send_image_to_chat(token, chat_id, key, log=write)
         for _ in range(10):
             if is_running and not is_running():
                 write("Stopped during wait")
