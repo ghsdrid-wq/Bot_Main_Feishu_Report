@@ -41,6 +41,11 @@
 - `customtkinter`, `tkcalendar`, `pandas`, `pywin32` (win32com/win32gui — **ต้องมี Microsoft Excel**), `requests`
 - DWS local API, JMS J&T (`jmsgw.jtexpress.co.th` — `operatingplatform` 建包/卸车 + realtime export), Feishu OpenAPI (Chat ID mode)
 
+## หมายเหตุ performance (Excel COM)
+- การ export รูปใช้ Power Query: `wb.RefreshAll()` → `CalculateUntilAsyncQueriesDone()` → `wait_excel()` (บรรทัด ~629–637 ของ `Createphoto.py`) — **ห้ามแตะลำดับนี้** มันคือจุดที่ดึงข้อมูลเข้าตาราง
+- **Optimization (ขั้น 1):** ย้าย `ws.Cells.Font.Name` และ `CalculateFull()` ออกจาก loop ราย item ไปทำ **ครั้งเดียวต่อ workbook หลัง RefreshAll** — ลดงานซ้ำ (ตั้งฟอนต์ทั้งชีต/คำนวณทั้ง workbook ซ้ำทุกรูป) โดย**ไม่กระทบข้อมูล** (ยัง calculate ครบ 1 ครั้งก่อน export และฟอนต์เป็นแค่การแสดงผล)
+- ยังมีขั้น 2/3 ที่ทำต่อได้ถ้าต้องการเบาขึ้นอีก: ปิด `Calculation=manual`/`ScreenUpdating` ระหว่างทำ, ลด `_pump_excel_messages` (เสี่ยง "รูปขาว" → ต้องเทสต์ export จริงทุกครั้ง)
+
 ## ข้อควรระวัง
 - ต้องรันบน Windows + Excel
 - token DWS/JMS หมดอายุได้ → แก้ในหน้า "ส่งออกข้อมูล"; ต้องตั้ง `CHAT_ID` ในหน้า "ตั้งค่า"

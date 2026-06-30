@@ -490,17 +490,12 @@ def run_create(*args, save_dir: Optional[str] = None, log: LogFunc = None, is_ru
             except Exception:
                 pass
 
-            try:
-                ws.Cells.Font.Name = "Microsoft YaHei"
-            except Exception:
-                pass
-
-            # Make sure formulas and UI drawing have settled.
-            try:
-                excel.CalculateFull()
-                ws.Calculate()
-            except Exception:
-                pass
+            # NOTE: sheet font and full recalculation are now done once per
+            # workbook (after Power Query RefreshAll) instead of on every image.
+            # Setting ws.Cells.Font / CalculateFull per image re-styled and
+            # recalculated the whole workbook for each export, which was the
+            # main CPU/Excel cost. Data is unaffected: the refresh + a single
+            # CalculateFull still run before any image is exported.
 
             _pump_excel_messages(1.0)
 
@@ -635,6 +630,25 @@ def run_create(*args, save_dir: Optional[str] = None, log: LogFunc = None, is_ru
 
             wait_excel(excel, keep_running, write, timeout=180)
             _pump_excel_messages(1.0)
+
+            # One full calculation after Power Query refresh, so every formula
+            # that references the loaded tables is up to date before exporting
+            # images. This replaces the per-image CalculateFull that used to run
+            # inside export_range_as_image.
+            try:
+                excel.CalculateFull()
+            except Exception:
+                pass
+
+            # Apply the display font once per exported sheet instead of on every
+            # single image. ws.Cells.Font covers the whole sheet, so doing it per
+            # image was a major repeated cost. Font is cosmetic only and does not
+            # change any cell value.
+            for sheet_name in {item.sheet for item in group}:
+                try:
+                    wb.Worksheets(sheet_name).Cells.Font.Name = "Microsoft YaHei"
+                except Exception:
+                    pass
 
             for item in group:
                 if not keep_running():
